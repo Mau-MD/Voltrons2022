@@ -24,18 +24,19 @@ public class DetectionPipeline extends OpenCvPipeline {
 
     public int position = 0; // 0 izquierda, 1 centro, 2 derecha
 
-    public static int squareLengthPX = 20;
+    public static int squareLengthPX = 40;
 
-    public static int globalY = 120;
-    public static int startingX = 110;
-    public static int gap = 10;
+    public static int globalY = 130;
+    public static int startingX = 60;
+    public static int gap = 60;
 
-    public static Point firstSquareCorner = new Point(startingX, globalY);
-    public static Point secondSquareCorner = new Point(startingX + squareLengthPX + gap, globalY);
-    public static Point thirdSquareCorner = new Point(startingX + squareLengthPX * 2 + 2 * gap, globalY);
 
     @Override
     public Mat processFrame(Mat input) {
+
+        Point firstSquareCorner = new Point(startingX, globalY);
+        Point secondSquareCorner = new Point(startingX + squareLengthPX + gap, globalY);
+        Point thirdSquareCorner = new Point(startingX + squareLengthPX * 2 + 2 * gap, globalY);
 
         // Procesar imagen
         Imgproc.cvtColor(input, YCrCb, Imgproc.COLOR_BGR2YCrCb);

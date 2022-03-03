@@ -1,13 +1,16 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
 
-@TeleOp(name="Driver", group="opmode")
+@Config
+@TeleOp(name = "Driver", group = "opmode")
 public class Teleop extends LinearOpMode {
 
     // Primero declaramos todas las variables que vamos a usar
@@ -22,9 +25,18 @@ public class Teleop extends LinearOpMode {
     DcMotor duckArm;
     DcMotor arm;
 
-    Servo claw;
-    double clawOpenPosition = 0.6;
-    double clawClosedPosition = 0.3;
+    Servo leftClaw;
+    Servo rightClaw;
+    Servo ankle;
+
+    public static double leftClawOpen = 0.35;
+    public static double leftClawClosed = 0;
+
+    public static double rightClawOpen = 0.65;
+    public static double rightClawClosed = 1;
+
+    public static double ankleDivider = 100;
+
     boolean open = false;
 
     ElapsedTime aButton = new ElapsedTime();
@@ -33,6 +45,8 @@ public class Teleop extends LinearOpMode {
     ElapsedTime yButton = new ElapsedTime();
 
     ElapsedTime armDelay = new ElapsedTime();
+
+
 
 
     @Override
@@ -47,7 +61,10 @@ public class Teleop extends LinearOpMode {
         duckArm = hardwareMap.dcMotor.get("duck");
         arm = hardwareMap.dcMotor.get("arm");
 
-        claw = hardwareMap.servo.get("cl");
+        leftClaw = hardwareMap.servo.get("lcl");
+        rightClaw = hardwareMap.servo.get("rcl");
+
+        ankle = hardwareMap.servo.get("ankle");
 
         // Invertimos los motores de frabrica
         rightBack.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -73,6 +90,7 @@ public class Teleop extends LinearOpMode {
         double k_p = 0.003;
 
         double position_goal = arm.getCurrentPosition();
+        double anklePosition = 0.39;
 
         waitForStart();
         while (opModeIsActive()) {
@@ -97,17 +115,14 @@ public class Teleop extends LinearOpMode {
             }
 
             // Invert Mode
-            if (gamepad1.y && yButton.milliseconds() > 300)
-            {
-                if (invert == 1)
-                {
+            if (gamepad1.y && yButton.milliseconds() > 300) {
+                if (invert == 1) {
                     leftFront.setDirection(DcMotorSimple.Direction.REVERSE);
                     rightFront.setDirection(DcMotorSimple.Direction.FORWARD);
                     leftBack.setDirection(DcMotorSimple.Direction.REVERSE);
                     rightBack.setDirection(DcMotorSimple.Direction.FORWARD);
                     invert = -1;
-                }
-                else {
+                } else {
                     leftFront.setDirection(DcMotorSimple.Direction.FORWARD);
                     rightFront.setDirection(DcMotorSimple.Direction.REVERSE);
                     leftBack.setDirection(DcMotorSimple.Direction.FORWARD);
@@ -119,12 +134,10 @@ public class Teleop extends LinearOpMode {
 
             // Los bumpers de un control, regresan un valor entre 0 y 1. Entonces tenemos que asignar poder dependiendo de eso
             if (gamepad1.right_bumper) {
-                duckArm.setPower(1);
-            }
-            else if (gamepad1.left_bumper) {
-                duckArm.setPower(-1);
-            }
-            else {
+                duckArm.setPower(0.05);
+            } else if (gamepad1.left_bumper) {
+                duckArm.setPower(-0.05);
+            } else {
                 // Si ninguno de los dos botones estan siendp presionados, lo apagamos
                 duckArm.setPower(0);
             }
@@ -135,36 +148,43 @@ public class Teleop extends LinearOpMode {
             // Esto de los miliseconds, es un truco porque como el codigo se actauliza muy rapido, el darle un click a la x, haria que se corriera este pedazo de codigo como unas 15 veces. Haciendo un delay de 300 milisegundos evita esto
             if (gamepad2.x && xButton.milliseconds() > 300) {
                 if (open) {
-                    claw.setPosition(clawClosedPosition);
+                    leftClaw.setPosition(leftClawClosed);
+                    rightClaw.setPosition(rightClawClosed);
                     open = false;
-                }
-                else {
-                    claw.setPosition(clawOpenPosition);
+                } else {
+                    leftClaw.setPosition(leftClawOpen);
+                    rightClaw.setPosition(rightClawOpen);
                     open = true;
                 }
                 xButton.reset();
             }
 
 
-            if (gamepad2.right_trigger > 0 && armDelay.milliseconds() > 20)
-            {
+            // Brazo
+            if (gamepad2.left_trigger > 0 && armDelay.milliseconds() > 20) {
                 position_goal += 8;
                 armDelay.reset();
             }
-            if (gamepad2.left_trigger > 0 && armDelay.milliseconds() > 20)
-            {
+            if (gamepad2.right_trigger > 0 && armDelay.milliseconds() > 20) {
                 position_goal -= 8;
                 armDelay.reset();
             }
 
+            // Muneca
+            anklePosition += -gamepad2.left_stick_y / ankleDivider;
+            anklePosition = Range.clip(anklePosition, 0, 1.0);
+            ankle.setPosition(anklePosition);
+
             double error = position_goal - arm.getCurrentPosition();
             double armPower = k_p * error;
 
-             arm.setPower(-armPower);
+            arm.setPower(-armPower);
 
             telemetry.addData("Duck Power", duckArm.getPower());
             telemetry.addData("Invert", invert);
-            telemetry.addData("Servo Position", claw.getPosition());
+            telemetry.addData("Left Claw Position", leftClaw.getPosition());
+            telemetry.addData("Right Claw Position", rightClaw.getPosition());
+            telemetry.addData("Ankle", ankle.getPosition());
             telemetry.addData("Error", error);
             telemetry.addData("Arm Power", armPower);
             telemetry.addData("Arm position", arm.getCurrentPosition());

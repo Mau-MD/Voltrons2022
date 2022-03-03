@@ -27,86 +27,109 @@ public class Drive {
         rightBack.setPower(0);
     }
 
-    public void frontTimed(double power, int ms) {
+    public void frontTimed(double power, int ms, double angle, double kp) {
 
         ElapsedTime elapsedTime = new ElapsedTime();
         elapsedTime.reset();
 
         while (elapsedTime.milliseconds() < ms) {
-            leftFront.setPower(power);
-            leftBack.setPower(power);
-            rightFront.setPower(power);
-            rightBack.setPower(power);
-        }
-        idle();
-    }
-
-    public void backTimed(double power, int ms) {
-
-        ElapsedTime elapsedTime = new ElapsedTime();
-        elapsedTime.reset();
-
-        while (elapsedTime.milliseconds() < ms) {
-            leftFront.setPower(-power);
-            leftBack.setPower(-power);
-            rightFront.setPower(-power);
-            rightBack.setPower(-power);
-        }
-        idle();
-    }
-
-    public void leftTimed(double power, int ms) {
-
-        ElapsedTime elapsedTime = new ElapsedTime();
-        elapsedTime.reset();
-
-        while (elapsedTime.milliseconds() < ms) {
-            leftFront.setPower(-power);
-            leftBack.setPower(power);
-            rightFront.setPower(power);
-            rightBack.setPower(-power);
-        }
-        idle();
-    }
-
-    public void rightTimed(double power, int ms) {
-
-        ElapsedTime elapsedTime = new ElapsedTime();
-        elapsedTime.reset();
-
-        while (elapsedTime.milliseconds() < ms) {
-            leftFront.setPower(power);
-            leftBack.setPower(-power);
-            rightFront.setPower(-power);
-            rightBack.setPower(power);
-        }
-    }
-
-    public void setOrientation(double power, double angle, double kp) {
-
-        double multiplier = 1;
-
-        while (!Thread.currentThread().isInterrupted()) {
 
             double error = Imu.getError(imu.getAngleNormalized(), angle);
             double correction = error * kp;
 
-            power *= multiplier;
 
-            leftBack.setPower(power * correction);
-            leftBack.setPower(power * correction);
-            rightFront.setPower(-power * correction);
-            rightBack.setPower(-power * correction);
+            leftFront.setPower(power + correction);
+            leftBack.setPower(power + correction);
+            rightFront.setPower(power - correction);
+            rightBack.setPower(power - correction);
+        }
+        idle();
+    }
 
-            if (Math.abs(error) < 10) {
-                // Hacer el robot que vaya mas lento
-                multiplier = 0.4;
+    public void backTimed(double power, int ms, double angle, double kp) {
+
+        ElapsedTime elapsedTime = new ElapsedTime();
+        elapsedTime.reset();
+
+        while (elapsedTime.milliseconds() < ms) {
+
+            double error = Imu.getError(imu.getAngleNormalized(), angle);
+            double correction = error * kp;
+
+            leftFront.setPower(-power + correction);
+            leftBack.setPower(-power + correction);
+            rightFront.setPower(-power - correction);
+            rightBack.setPower(-power - correction);
+        }
+        idle();
+    }
+
+    public void leftTimed(double power, int ms, double angle, double kp) {
+
+        ElapsedTime elapsedTime = new ElapsedTime();
+        elapsedTime.reset();
+
+        while (elapsedTime.milliseconds() < ms) {
+
+            double error = Imu.getError(imu.getAngleNormalized(), angle);
+            double correction = error * kp;
+
+            leftFront.setPower(-power + correction);
+            leftBack.setPower(power + correction);
+            rightFront.setPower(power - correction);
+            rightBack.setPower(-power - correction);
+        }
+        idle();
+    }
+
+    public void rightTimed(double power, int ms, double angle, double kp) {
+
+        ElapsedTime elapsedTime = new ElapsedTime();
+        elapsedTime.reset();
+
+        while (elapsedTime.milliseconds() < ms) {
+
+            double error = Imu.getError(imu.getAngleNormalized(), angle);
+            double correction = error * kp;
+
+            leftFront.setPower(power + correction);
+            leftBack.setPower(-power + correction);
+            rightFront.setPower(-power - correction);
+            rightBack.setPower(power - correction);
+        }
+        idle();
+    }
+
+
+    public void setOrientation(double power, double angle, double timeLimit) {
+
+        ElapsedTime time = new ElapsedTime();
+
+        double multiplier = 1;
+        time.reset();
+
+        while (!Thread.currentThread().isInterrupted()) {
+
+            if (time.milliseconds() > timeLimit) {
+                break;
             }
 
-            if (Math.abs(error) < 3) {
+            double error = Imu.getError(imu.getAngleNormalized(), angle);
+
+            if (Math.abs(error) < 5) {
                 // Romper cuando llegue a un angulo
                 break;
             }
+
+            if (Math.abs(error) < 15) {
+                multiplier = 0.3;
+            }
+
+            leftBack.setPower(power * multiplier);
+            leftBack.setPower(power * multiplier);
+            rightFront.setPower(-power * multiplier);
+            rightBack.setPower(-power * multiplier);
+
         }
 
         idle();
